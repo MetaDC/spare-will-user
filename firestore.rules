@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'admin@gmail.com';
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // Inquiries - user owns theirs, admin owns all
+    match /inquiries/{inquiryId} {
+      allow create: if (isSignedIn() && request.resource.data.userId == request.auth.uid) || (!isSignedIn() && !('userId' in request.resource.data));
+      allow read, update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // Saved vehicles
+    match /savedVehicles/{vehicleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Business settings - public read, admin write
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Inventory - public read, admin write
+    match /inventory/{itemId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

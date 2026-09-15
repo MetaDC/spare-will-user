@@ -1,0 +1,6 @@
+{
+  "name": "Spare Will",
+  "description": "Automotive services and spare parts inquiry web application for finding genuine parts, vehicle towing, repairing, and vehicle transactions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered user profile information and contact defaults",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "User ID matching Auth UID" },
+        "name": { "type": "string", "description": "User full display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "phone": { "type": "string", "description": "User mobile phone number" },
+        "avatar": { "type": "string", "description": "Avatar placeholder or string" },
+        "createdAt": { "type": "string", "description": "Account creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Account last update timestamp" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Vehicle spare parts inquiry submitted by customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Inquiry reference number, e.g. #SW-1028" },
+        "userId": { "type": "string", "description": "Owner user ID or anonymous reference" },
+        "date": { "type": "string", "description": "Formatted submission date" },
+        "status": { "type": "string", "description": "Current workflow status: New, Reviewing, Price Sent, Customer Contacted, Completed, Cancelled" },
+        "vehicle": {
+          "type": "object",
+          "properties": {
+            "make": { "type": "string" },
+            "model": { "type": "string" },
+            "year": { "type": "number" },
+            "engineTrim": { "type": "string" },
+            "transmission": { "type": "string" },
+            "vin": { "type": "string" }
+          },
+          "required": ["make", "model", "year", "engineTrim", "transmission"]
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "spec": { "type": "string" },
+              "quantity": { "type": "number" },
+              "note": { "type": "string" }
+            },
+            "required": ["id", "name", "quantity"]
+          }
+        },
+        "contact": {
+          "type": "object",
+          "properties": {
+            "fullName": { "type": "string" },
+            "mobileNumber": { "type": "string" },
+            "whatsappAvailable": { "type": "boolean" },
+            "email": { "type": "string" }
+          },
+          "required": ["fullName", "mobileNumber", "email"]
+        },
+        "additionalNotes": { "type": "string" },
+        "statusHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "label": { "type": "string" },
+              "description": { "type": "string" },
+              "date": { "type": "string" },
+              "completed": { "type": "boolean" },
+              "active": { "type": "boolean" }
+            },
+            "required": ["status", "label", "description", "completed", "active"]
+          }
+        },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" }
+      },
+      "required": ["id", "date", "status", "vehicle", "parts", "contact", "statusHistory"]
+    },
+    "SavedVehicle": {
+      "title": "SavedVehicle",
+      "description": "User garage saved vehicles for quick inquiry creation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "number" },
+        "engineTrim": { "type": "string" },
+        "transmission": { "type": "string" },
+        "vin": { "type": "string" }
+      },
+      "required": ["id", "userId", "make", "model", "year", "engineTrim", "transmission"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "UserProfile",
+      "description": "Collection of registered user profiles"
+    },
+    "inquiries": {
+      "schema": "Inquiry",
+      "description": "Collection of all customer spare part inquiries"
+    },
+    "savedVehicles": {
+      "schema": "SavedVehicle",
+      "description": "Collection of user saved garage vehicles"
+    }
+  }
+}
