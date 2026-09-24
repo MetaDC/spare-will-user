@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/Header';
 import { PartRow } from '../components/PartRow';
 import { useApp } from '../context/AppContext';
-import { ArrowRight, Plus, Search, Package } from 'lucide-react';
+import { ArrowRight, Plus, Search, Package, Loader2, Layers } from 'lucide-react';
+import { searchPartsAndCategories, PartSearchResult } from '../services/partCatalogService';
+import { PartSubcategory } from '../models/part';
 
 export const AddSparePartsScreen: React.FC = () => {
   const {
@@ -14,21 +16,49 @@ export const AddSparePartsScreen: React.FC = () => {
     partSearchQuery,
     setPartSearchQuery,
     showToast,
-    inventory
   } = useApp();
 
   const [inputVal, setInputVal] = useState(partSearchQuery || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchResult, setSearchResult] = useState<PartSearchResult>({
+    subcategories: [],
+    matchedCategories: [],
+  });
 
-  // Filter inventory based on what the user is typing
-  const suggestions = inputVal.trim().length >= 1
-    ? inventory.filter(part =>
-        part.name.toLowerCase().includes(inputVal.toLowerCase()) ||
-        part.partNumber?.toLowerCase().includes(inputVal.toLowerCase()) ||
-        part.brand?.toLowerCase().includes(inputVal.toLowerCase()) ||
-        part.category?.toLowerCase().includes(inputVal.toLowerCase())
-      ).slice(0, 8)
-    : [];
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced search for PartSubcategories & matched Categories
+  useEffect(() => {
+    const trimmed = inputVal.trim();
+    if (!trimmed) {
+      setSearchResult({ subcategories: [], matchedCategories: [] });
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await searchPartsAndCategories(trimmed, 12);
+        setSearchResult(res);
+      } catch (e) {
+        console.warn('Part search failed:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [inputVal]);
 
   const handleAddFromInput = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +69,13 @@ export const AddSparePartsScreen: React.FC = () => {
     setShowSuggestions(false);
   };
 
-  const handleSelectSuggestion = (part: typeof inventory[0]) => {
-    const spec = [part.brand, part.category, part.partNumber].filter(Boolean).join(' · ') || 'Standard Fitment';
-    addDraftPart(part.name, spec);
+  const handleSelectSubcategory = (subcat: PartSubcategory) => {
+    const spec = subcat.categoryName ? `${subcat.categoryName}` : 'Standard Fitment';
+    addDraftPart(subcat.name, spec, {
+      subcategoryId: subcat.id,
+      categoryId: subcat.categoryId,
+      categoryName: subcat.categoryName,
+    });
     setInputVal('');
     setPartSearchQuery('');
     setShowSuggestions(false);
@@ -54,6 +88,8 @@ export const AddSparePartsScreen: React.FC = () => {
     }
     navigate('contact-details');
   };
+
+  const hasSuggestions = searchResult.subcategories.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7fafc] pb-32">
@@ -77,7 +113,7 @@ export const AddSparePartsScreen: React.FC = () => {
             What parts do you need?
           </h1>
           <p className="text-xs text-[#73777d]">
-            Add items to receive an accurate quote and availability update.
+            Search by part or category (e.g. Brake Pad, Air Conditioner) to add items.
           </p>
         </div>
 
@@ -94,55 +130,78 @@ export const AddSparePartsScreen: React.FC = () => {
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                placeholder="Search or type a spare part name..."
-                className="w-full h-12 pl-10 pr-20 bg-white border border-[#c3c7cd] rounded-xl text-xs sm:text-sm text-[#181c1e] placeholder:text-[#73777d] focus:border-[#fb7800] focus:ring-2 focus:ring-[#fb7800]/20 outline-none shadow-2xs transition-all"
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Search part or category (e.g., Brake, AC, Filter)..."
+                className="w-full h-12 pl-10 pr-24 bg-white border border-[#c3c7cd] rounded-xl text-xs sm:text-sm text-[#181c1e] placeholder:text-[#73777d] focus:border-[#fb7800] focus:ring-2 focus:ring-[#fb7800]/20 outline-none shadow-2xs transition-all"
               />
-              {inputVal.trim() && (
-                <button
-                  type="submit"
-                  className="absolute right-2 px-3 py-1.5 bg-[#fb7800] text-white font-heading font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add
-                </button>
-              )}
+              <div className="absolute right-2 flex items-center gap-1.5">
+                {isLoading && (
+                  <Loader2 className="w-4 h-4 text-[#fb7800] animate-spin shrink-0" />
+                )}
+                {inputVal.trim() && (
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 bg-[#fb7800] hover:bg-[#e06c00] text-white font-heading font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add
+                  </button>
+                )}
+              </div>
             </div>
           </form>
 
-          {/* Live Inventory Suggestions Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-40 mt-1 bg-white border border-[#e0e3e5] rounded-xl shadow-lg overflow-hidden">
-              <p className="text-[10px] font-semibold text-[#73777d] uppercase tracking-wider px-3 pt-2.5 pb-1">
-                From Inventory
-              </p>
-              {suggestions.map(part => (
-                <button
-                  key={part.id}
-                  type="button"
-                  onMouseDown={() => handleSelectSuggestion(part)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#fff7f0] active:bg-[#fff0e0] transition-colors text-left"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-[#fb7800]/10 flex items-center justify-center text-[#fb7800] shrink-0">
-                    <Package className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-[#181c1e] truncate">{part.name}</p>
-                    <p className="text-[10px] text-[#73777d] truncate">
-                      {[part.brand, part.category, part.partNumber].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  {part.status && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-                      part.status === 'active'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {part.status === 'active' ? 'In Stock' : part.status}
-                    </span>
-                  )}
-                </button>
-              ))}
+          {/* Live Catalog Suggestions Dropdown */}
+          {showSuggestions && inputVal.trim().length >= 1 && (
+            <div className="absolute top-full left-0 right-0 z-40 mt-1.5 bg-white border border-[#e0e3e5] rounded-xl shadow-xl overflow-hidden max-h-80 overflow-y-auto">
+              {/* Category banner if a category was matched */}
+              {searchResult.matchedCategories.length > 0 && (
+                <div className="bg-[#fff7f0] border-b border-[#ffe8d6] px-3 py-2 flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-[#fb7800] shrink-0" />
+                  <p className="text-[11px] font-semibold text-[#8a3c00] truncate">
+                    Category: <span className="font-bold">{searchResult.matchedCategories.map(c => c.name).join(', ')}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Subcategories list */}
+              {hasSuggestions ? (
+                <>
+                  <p className="text-[10px] font-semibold text-[#73777d] uppercase tracking-wider px-3 pt-2.5 pb-1">
+                    {searchResult.matchedCategories.length > 0 ? 'Parts in this Category' : 'Catalog Parts'}
+                  </p>
+                  {searchResult.subcategories.map(subcat => (
+                    <button
+                      key={subcat.id}
+                      type="button"
+                      onMouseDown={() => handleSelectSubcategory(subcat)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#fff7f0] active:bg-[#fff0e0] transition-colors text-left border-b border-[#f1f4f6] last:border-b-0"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#fb7800]/10 flex items-center justify-center text-[#fb7800] shrink-0">
+                        <Package className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-[#181c1e] truncate">{subcat.name}</p>
+                        {subcat.categoryName && (
+                          <p className="text-[10px] text-[#73777d] truncate">
+                            {subcat.categoryName}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-[#fb7800] bg-[#fb7800]/10 px-2 py-0.5 rounded-md shrink-0">
+                        + Add
+                      </span>
+                    </button>
+                  ))}
+                </>
+              ) : !isLoading ? (
+                <div className="p-3 text-center">
+                  <p className="text-xs font-semibold text-[#181c1e]">No catalog parts found</p>
+                  <p className="text-[11px] text-[#73777d] mt-0.5">
+                    Click <strong>Add</strong> or press Enter to add &ldquo;{inputVal.trim()}&rdquo; as a custom request.
+                  </p>
+                </div>
+              ) : null}
             </div>
           )}
         </div>
@@ -160,7 +219,7 @@ export const AddSparePartsScreen: React.FC = () => {
         </div>
 
         {/* Compact Parts List */}
-        <div className="space-y-4 flex-1">
+        <div className="space-y-3 flex-1">
           {draftParts.length > 0 ? (
             draftParts.map(part => (
               <PartRow
@@ -201,7 +260,6 @@ export const AddSparePartsScreen: React.FC = () => {
           </div>
         </div>
       </main>
-
     </div>
   );
 };

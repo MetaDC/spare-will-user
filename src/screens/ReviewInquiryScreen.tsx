@@ -62,7 +62,7 @@ export const ReviewInquiryScreen: React.FC = () => {
                     Vehicle
                   </span>
                   <h2 className="font-heading text-sm sm:text-base font-bold text-[#181c1e] truncate">
-                    {draftVehicle.make} {draftVehicle.model}
+                    {draftVehicle.year ? `${draftVehicle.year} ` : ''}{draftVehicle.make} {draftVehicle.model}
                   </h2>
                 </div>
               </div>
@@ -80,18 +80,22 @@ export const ReviewInquiryScreen: React.FC = () => {
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-[#f7fafc] border border-[#eef2f5] rounded-xl p-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-[#73777d] mb-0.5">
-                  Trim / Engine
+                  {draftVehicle.variantName ? 'Variant / Engine' : 'Trim / Engine'}
                 </span>
                 <span className="font-semibold text-xs sm:text-sm text-[#181c1e] block truncate">
-                  {draftVehicle.engineTrim}
+                  {draftVehicle.variantName
+                    ? [draftVehicle.variantName, draftVehicle.engine].filter(Boolean).join(' · ')
+                    : draftVehicle.engineTrim}
                 </span>
               </div>
               <div className="bg-[#f7fafc] border border-[#eef2f5] rounded-xl p-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-[#73777d] mb-0.5">
-                  Transmission
+                  {draftVehicle.fuelType ? 'Transmission / Fuel' : 'Transmission'}
                 </span>
                 <span className="font-semibold text-xs sm:text-sm text-[#181c1e] block truncate">
-                  {draftVehicle.transmission}
+                  {draftVehicle.fuelType
+                    ? [draftVehicle.transmission, draftVehicle.fuelType].filter(Boolean).join(' · ')
+                    : draftVehicle.transmission}
                 </span>
               </div>
             </div>

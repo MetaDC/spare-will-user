@@ -23,12 +23,14 @@ export const VehicleSelectorModal: React.FC<VehicleSelectorModalProps> = ({ isOp
     if (!customMake || !customModel) return;
     const newVeh: VehicleInfo = {
       make: customMake.trim(),
-      model: `${customModel.trim()} ${customYear}`,
+      brandName: customMake.trim(),
+      model: customModel.trim(),
+      modelName: customModel.trim(),
       year: parseInt(customYear) || new Date().getFullYear(),
       engineTrim: customTrim.trim() || 'Standard',
       transmission: 'Unknown',
       vin: customVin.trim() || undefined,
-      image: undefined
+      image: undefined,
     };
     updateDraftVehicle(newVeh);
     onClose();

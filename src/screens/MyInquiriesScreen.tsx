@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Header } from '../components/Header';
 import { useApp } from '../context/AppContext';
+import { formatInquiryDate } from '../services/firebaseService';
 import { Calendar, Plus, Settings, Sparkles } from 'lucide-react';
 
 export const MyInquiriesScreen: React.FC = () => {
@@ -124,7 +125,7 @@ export const MyInquiriesScreen: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#73777d]" />
-                      <span>{inquiry.date}</span>
+                      <span>{formatInquiryDate(inquiry.createdAt)}</span>
                     </div>
                   </div>
                 </article>

@@ -16,20 +16,64 @@ export type Screen =
 
 export type InquiryStatus = 'New' | 'Reviewing' | 'Price Sent' | 'Customer Contacted' | 'Completed' | 'Cancelled';
 
-export interface PartItem {
-  id: string;
-  name: string;
-  spec?: string;
-  quantity: number;
+export type PartAvailability =
+  | 'Available'
+  | 'Not Available'
+  | 'Alternative Available'
+  | 'Need Confirmation';
+
+export interface InquiryPartBrandOption {
+  brandId?: string;
+  brandName: string;
+  price: number;
+  costPrice?: number;
+  availability?: PartAvailability;
+  warranty?: string;
+  partNumber?: string;
   note?: string;
 }
 
+export interface PartItem {
+  // Customer request fields
+  id: string;
+  name: string;
+  subcategoryId?: string;
+  categoryId?: string;
+  categoryName?: string;
+  spec?: string;
+  quantity: number;
+  customerNote?: string;
+  note?: string;
+
+  // Admin quotation fields
+  availability?: PartAvailability;
+  brandId?: string;
+  brandName?: string;
+  partNumber?: string;
+  price?: number;
+  costPrice?: number;
+  adminNote?: string;
+  productId?: string;
+  brandOptions?: InquiryPartBrandOption[];
+}
+
 export interface VehicleInfo {
+  vehicleCategoryId?: string;
+  vehicleCategoryName?: string;
+  brandId?: string;
+  brandName?: string;
   make: string;
+  modelId?: string;
+  modelName?: string;
   model: string;
+  variantId?: string;
+  variantName?: string;
+  fuelType?: string;
+  engine?: string;
+  engineCode?: string;
+  transmission: string;
   year: number;
   engineTrim: string;
-  transmission: string;
   vin?: string;
   image?: string;
 }
@@ -53,13 +97,13 @@ export interface StatusHistoryItem {
 export interface Inquiry {
   id: string;
   userId?: string;
-  date: string;
   status: InquiryStatus;
   vehicle: VehicleInfo;
   parts: PartItem[];
   contact: ContactInfo;
   additionalNotes?: string;
   statusHistory: StatusHistoryItem[];
+  createdAt: any; // Firestore serverTimestamp
 }
 
 export interface UserProfile {

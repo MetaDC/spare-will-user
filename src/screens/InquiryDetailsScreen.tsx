@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from '../components/Header';
 import { useApp } from '../context/AppContext';
+import { formatInquiryDate } from '../services/firebaseService';
 import {
   Car,
   CheckCircle2,
@@ -73,7 +74,7 @@ export const InquiryDetailsScreen: React.FC = () => {
               Date Submitted
             </h2>
             <p className="font-heading text-sm sm:text-base font-bold text-[#181c1e]">
-              {inquiry.date}
+              {formatInquiryDate(inquiry.createdAt)}
             </p>
             <span className="text-xs font-mono text-[#73777d]">ID: {inquiry.id}</span>
           </div>
