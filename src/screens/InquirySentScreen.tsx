@@ -1,7 +1,7 @@
-import React from 'react';
-import { Header } from '../components/Header';
-import { useApp } from '../context/AppContext';
-import { CheckCircle2, Home, ListFilter } from 'lucide-react';
+import React from "react";
+import { Header } from "../components/Header";
+import { useApp } from "../context/AppContext";
+import { CheckCircle2, Home, ListFilter } from "lucide-react";
 
 export const InquirySentScreen: React.FC = () => {
   const { activeInquiry, navigate, resetDraft } = useApp();
@@ -9,15 +9,15 @@ export const InquirySentScreen: React.FC = () => {
   const handleViewInquiry = () => {
     resetDraft();
     if (activeInquiry) {
-      navigate('inquiry-details', { inquiryId: activeInquiry.id });
+      navigate("inquiry-details", { inquiryId: activeInquiry.id });
     } else {
-      navigate('inquiries');
+      navigate("inquiries");
     }
   };
 
   const handleBackHome = () => {
     resetDraft();
-    navigate('home');
+    navigate("home");
   };
 
   return (
@@ -35,7 +35,8 @@ export const InquirySentScreen: React.FC = () => {
           Inquiry Sent!
         </h1>
         <p className="text-xs sm:text-sm text-[#43474c] max-w-[280px] mx-auto mb-6 leading-relaxed">
-          We received your spare-parts request. Our technical team is checking inventory and will contact you shortly.
+          We received your spare-parts request. Our technical team is checking
+          inventory and will contact you shortly.
         </p>
 
         {/* Inquiry Card */}
@@ -44,8 +45,11 @@ export const InquirySentScreen: React.FC = () => {
             <span className="text-[10px] sm:text-[11px] font-bold text-[#73777d] uppercase tracking-wider">
               Inquiry ID
             </span>
-            <span className="font-mono text-xs sm:text-sm font-bold text-[#021d30] bg-[#f1f4f6] px-2.5 py-0.5 rounded-md">
-              {activeInquiry?.id || ''}
+            <span className="font-mono text-xs sm:text-sm font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-md">
+              {activeInquiry?.inquireId ||
+                (activeInquiry as any)?.InquireID ||
+                activeInquiry?.id ||
+                ""}
             </span>
           </div>
 
@@ -69,7 +73,7 @@ export const InquirySentScreen: React.FC = () => {
             <ListFilter className="w-4 h-4" />
             View Inquiry
           </button>
-          
+
           <button
             onClick={handleBackHome}
             className="w-full h-12 border-2 border-[#021d30] hover:bg-[#021d30]/5 text-[#021d30] font-heading font-bold text-sm rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"

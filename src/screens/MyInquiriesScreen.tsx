@@ -1,37 +1,39 @@
-import React, { useState } from 'react';
-import { Header } from '../components/Header';
-import { useApp } from '../context/AppContext';
-import { formatInquiryDate } from '../services/firebaseService';
-import { Calendar, Plus, Settings, Sparkles } from 'lucide-react';
+import React, { useState } from "react";
+import { Header } from "../components/Header";
+import { useApp } from "../context/AppContext";
+import { formatInquiryDate } from "../services/firebaseService";
+import { Calendar, Plus, Settings, Sparkles } from "lucide-react";
 
 export const MyInquiriesScreen: React.FC = () => {
   const { inquiries, viewInquiry, navigate } = useApp();
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all');
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "completed">(
+    "all",
+  );
 
-  const filteredInquiries = inquiries.filter(inq => {
-    if (activeTab === 'active') {
-      return ['New', 'Reviewing', 'Price Sent', 'Customer Contacted'].includes(inq.status);
+  const filteredInquiries = inquiries.filter((inq) => {
+    if (activeTab === "active") {
+      return ["New", "Reviewing", "Price Sent"].includes(inq.status);
     }
-    if (activeTab === 'completed') {
-      return ['Completed', 'Cancelled'].includes(inq.status);
+    if (activeTab === "completed") {
+      return ["Completed", "Cancelled"].includes(inq.status);
     }
     return true;
   });
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
-      case 'New':
-        return 'bg-[#ffdbc8] text-[#753400] font-semibold';
-      case 'Price Sent':
-        return 'bg-[#cde5ff] text-[#021d30] font-semibold';
-      case 'Reviewing':
-        return 'bg-[#e0e3e5] text-[#43474c] font-semibold';
-      case 'Completed':
-        return 'bg-[#66ff8e]/30 text-[#005322] font-semibold';
-      case 'Customer Contacted':
-        return 'bg-[#ffb68b]/40 text-[#592600] font-semibold';
+      case "New":
+        return "bg-[#ffdbc8] text-[#753400] font-semibold";
+      case "Price Sent":
+        return "bg-[#cde5ff] text-[#021d30] font-semibold";
+      case "Reviewing":
+        return "bg-[#fef3c7] text-[#92400e] font-semibold";
+      case "Completed":
+        return "bg-[#66ff8e]/30 text-[#005322] font-semibold";
+      case "Cancelled":
+        return "bg-[#fee2e2] text-[#991b1b] font-semibold";
       default:
-        return 'bg-[#e0e3e5] text-[#43474c]';
+        return "bg-[#e0e3e5] text-[#43474c]";
     }
   };
 
@@ -46,7 +48,7 @@ export const MyInquiriesScreen: React.FC = () => {
             My Inquiries
           </h1>
           <button
-            onClick={() => navigate('add-parts')}
+            onClick={() => navigate("add-parts")}
             className="text-xs font-heading font-bold bg-[#fb7800] text-white px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-xs hover:bg-[#e06c00] active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -57,42 +59,57 @@ export const MyInquiriesScreen: React.FC = () => {
         {/* Filter Tabs */}
         <div className="flex bg-[#ebeef0] p-1 rounded-xl mb-6 text-xs font-semibold text-[#43474c]">
           <button
-            onClick={() => setActiveTab('all')}
+            onClick={() => setActiveTab("all")}
             className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'all'
-                ? 'bg-white text-[#181c1e] shadow-2xs font-bold'
-                : 'hover:text-[#181c1e]'
+              activeTab === "all"
+                ? "bg-white text-[#181c1e] shadow-2xs font-bold"
+                : "hover:text-[#181c1e]"
             }`}
           >
             All ({inquiries.length})
           </button>
           <button
-            onClick={() => setActiveTab('active')}
+            onClick={() => setActiveTab("active")}
             className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'active'
-                ? 'bg-white text-[#181c1e] shadow-2xs font-bold'
-                : 'hover:text-[#181c1e]'
+              activeTab === "active"
+                ? "bg-white text-[#181c1e] shadow-2xs font-bold"
+                : "hover:text-[#181c1e]"
             }`}
           >
-            Active ({inquiries.filter(i => ['New', 'Reviewing', 'Price Sent', 'Customer Contacted'].includes(i.status)).length})
+            Active (
+            {
+              inquiries.filter((i) =>
+                ["New", "Reviewing", "Price Sent"].includes(i.status),
+              ).length
+            }
+            )
           </button>
           <button
-            onClick={() => setActiveTab('completed')}
+            onClick={() => setActiveTab("completed")}
             className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'completed'
-                ? 'bg-white text-[#181c1e] shadow-2xs font-bold'
-                : 'hover:text-[#181c1e]'
+              activeTab === "completed"
+                ? "bg-white text-[#181c1e] shadow-2xs font-bold"
+                : "hover:text-[#181c1e]"
             }`}
           >
-            Completed ({inquiries.filter(i => ['Completed', 'Cancelled'].includes(i.status)).length})
+            Completed (
+            {
+              inquiries.filter((i) =>
+                ["Completed", "Cancelled"].includes(i.status),
+              ).length
+            }
+            )
           </button>
         </div>
 
         {/* Inquiries List */}
         <div className="space-y-4">
           {filteredInquiries.length > 0 ? (
-            filteredInquiries.map(inquiry => {
-              const totalPartsCount = inquiry.parts.reduce((acc, p) => acc + p.quantity, 0);
+            filteredInquiries.map((inquiry) => {
+              const totalPartsCount = inquiry.parts.reduce(
+                (acc, p) => acc + p.quantity,
+                0,
+              );
 
               return (
                 <article
@@ -102,16 +119,23 @@ export const MyInquiriesScreen: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-xs font-mono font-semibold text-[#73777d]">
-                        {inquiry.id}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {(inquiry.inquireId || inquiry.InquireID) && (
+                          <span className="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
+                            {inquiry.inquireId || inquiry.InquireID}
+                          </span>
+                        )}
+                        {/* <span className="text-xs font-mono font-semibold text-[#73777d]">
+                          {inquiry.id}
+                        </span> */}
+                      </div>
                       <h2 className="font-heading text-sm sm:text-base font-bold text-[#021d30] mt-0.5">
                         {inquiry.vehicle.make} {inquiry.vehicle.model}
                       </h2>
                     </div>
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-xs flex items-center gap-1 ${getStatusBadgeStyle(
-                        inquiry.status
+                        inquiry.status,
                       )}`}
                     >
                       {inquiry.status}
@@ -121,7 +145,10 @@ export const MyInquiriesScreen: React.FC = () => {
                   <div className="flex items-center gap-4 text-xs text-[#43474c] pt-2 border-t border-[#f1f4f6]">
                     <div className="flex items-center gap-1.5">
                       <Settings className="w-3.5 h-3.5 text-[#73777d]" />
-                      <span>{totalPartsCount} {totalPartsCount === 1 ? 'Part' : 'Parts'}</span>
+                      <span>
+                        {totalPartsCount}{" "}
+                        {totalPartsCount === 1 ? "Part" : "Parts"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#73777d]" />
@@ -134,12 +161,14 @@ export const MyInquiriesScreen: React.FC = () => {
           ) : (
             <div className="bg-white border border-[#e0e3e5] rounded-2xl p-8 text-center my-4">
               <Sparkles className="w-8 h-8 text-[#fb7800] mx-auto mb-2 opacity-60" />
-              <p className="font-heading font-bold text-sm text-[#181c1e]">No inquiries found</p>
+              <p className="font-heading font-bold text-sm text-[#181c1e]">
+                No inquiries found
+              </p>
               <p className="text-xs text-[#73777d] mt-1 mb-4">
                 You haven't submitted any inquiries in this category yet.
               </p>
               <button
-                onClick={() => navigate('add-parts')}
+                onClick={() => navigate("add-parts")}
                 className="px-4 py-2 bg-[#fb7800] text-white font-heading font-bold text-xs rounded-xl inline-flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-transform"
               >
                 <Plus className="w-3.5 h-3.5" />

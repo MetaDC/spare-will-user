@@ -1,19 +1,19 @@
-import React from 'react';
-import { Header } from '../components/Header';
-import { ServiceCard } from '../components/ServiceCard';
-import { FloatingPartSearch } from '../components/FloatingPartSearch';
-import { SERVICES } from '../data/mockData';
-import { useApp } from '../context/AppContext';
-import { ArrowRight } from 'lucide-react';
+import React from "react";
+import { Header } from "../components/Header";
+import { ServiceCard } from "../components/ServiceCard";
+import { FloatingPartSearch } from "../components/FloatingPartSearch";
+import { SERVICES } from "../data/mockData";
+import { useApp } from "../context/AppContext";
+import { ArrowRight } from "lucide-react";
 
 export const HomeScreen: React.FC = () => {
   const { navigate } = useApp();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7fafc] pb-24">
+    <div className="min-h-screen flex flex-col bg-[#f7fafc]">
       <Header />
 
-      <main className="flex-1 px-4 pt-3 sm:pt-4 max-w-md mx-auto w-full">
+      <main className="flex-1 px-4 pt-3 sm:pt-4 pb-44 sm:pb-48 max-w-md mx-auto w-full">
         {/* Headline & Subtitle Section */}
         <section className="pt-4 pb-6 text-center">
           <h1 className="font-heading text-2xl sm:text-[28px] font-black text-[#181c1e] tracking-tight leading-tight mb-4 max-w-[320px] sm:max-w-none mx-auto">
@@ -31,7 +31,7 @@ export const HomeScreen: React.FC = () => {
               Our Services
             </h2>
             <button
-              onClick={() => navigate('services')}
+              onClick={() => navigate("services")}
               className="text-xs font-semibold text-[#fb7800] hover:text-[#994700] flex items-center gap-1 cursor-pointer py-1"
             >
               View All
@@ -40,7 +40,7 @@ export const HomeScreen: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {SERVICES.map(service => (
+            {SERVICES.map((service) => (
               <ServiceCard key={service.id} service={service} />
             ))}
           </div>

@@ -1,27 +1,29 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { LOGO_URL } from '../data/mockData';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import React, { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { LOGO_URL } from "../data/mockData";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 export const SignInScreen: React.FC = () => {
-  const { signIn, signInWithGoogle, navigate, showToast } = useApp();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn, signInWithGoogle, navigate, goBack, showToast } = useApp();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email address is required';
-    } else if (!email.includes('@')) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Email address is required";
+    } else if (!email.includes("@")) {
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -33,17 +35,24 @@ export const SignInScreen: React.FC = () => {
   };
 
   const handleGoogleSignIn = () => {
-    showToast('Signing in with Google...', 'info');
+    showToast("Signing in with Google...", "info");
     signInWithGoogle();
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7fafc] px-4 py-8 max-w-sm mx-auto w-full justify-between">
-      {/* Header with Spare Will Logo */}
-      <header className="flex flex-col items-center pt-4 pb-6">
-        <div className="w-full flex justify-start mb-6 -ml-2">
+      {/* Header with Back Button and Logo */}
+      <header className="flex flex-col items-center pt-2 pb-6">
+        <div className="w-full flex items-center justify-between mb-6 -ml-2">
           <button
-            onClick={() => navigate('home')}
+            onClick={goBack}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#181c1e] hover:bg-[#ebeef0] active:scale-95 transition-all cursor-pointer relative z-10"
+            aria-label="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => navigate("home")}
             className="focus:outline-none group cursor-pointer"
             aria-label="Spare Will Home"
           >
@@ -51,10 +60,11 @@ export const SignInScreen: React.FC = () => {
               <img
                 src={LOGO_URL}
                 alt="Spare Will"
-                className="w-[160px] h-auto object-contain transition-transform group-active:scale-95"
+                className="w-[140px] sm:w-[160px] h-auto object-contain transition-transform group-active:scale-95"
               />
             </div>
           </button>
+          <div className="w-10" />
         </div>
 
         <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#181c1e] text-center w-full">
@@ -78,19 +88,22 @@ export const SignInScreen: React.FC = () => {
               <input
                 type="email"
                 value={email}
-                onChange={e => {
+                onChange={(e) => {
                   setEmail(e.target.value);
-                  if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                  if (errors.email)
+                    setErrors((prev) => ({ ...prev, email: undefined }));
                 }}
                 placeholder="you@example.com"
                 className={`w-full h-12 pl-10 pr-4 bg-white border rounded-xl text-sm text-[#181c1e] placeholder:text-[#73777d] outline-none shadow-2xs transition-all ${
                   errors.email
-                    ? 'border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]'
-                    : 'border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]'
+                    ? "border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]"
+                    : "border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]"
                 }`}
               />
             </div>
-            {errors.email && <p className="text-xs text-[#ba1a1a] mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-xs text-[#ba1a1a] mt-1">{errors.email}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -101,17 +114,18 @@ export const SignInScreen: React.FC = () => {
             <div className="relative">
               <Lock className="w-4 h-4 text-[#73777d] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={e => {
+                onChange={(e) => {
                   setPassword(e.target.value);
-                  if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                  if (errors.password)
+                    setErrors((prev) => ({ ...prev, password: undefined }));
                 }}
                 placeholder="••••••••"
                 className={`w-full h-12 pl-10 pr-11 bg-white border rounded-xl text-sm text-[#181c1e] placeholder:text-[#73777d] outline-none shadow-2xs transition-all ${
                   errors.password
-                    ? 'border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]'
-                    : 'border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]'
+                    ? "border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]"
+                    : "border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]"
                 }`}
               />
               <button
@@ -120,15 +134,21 @@ export const SignInScreen: React.FC = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#73777d] hover:text-[#181c1e] p-1"
                 aria-label="Toggle password visibility"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-[#ba1a1a] mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-xs text-[#ba1a1a] mt-1">{errors.password}</p>
+            )}
 
             <div className="flex justify-end mt-1.5">
               <button
                 type="button"
-                onClick={() => navigate('forgot-password')}
+                onClick={() => navigate("forgot-password")}
                 className="text-xs font-semibold text-[#fb7800] hover:underline"
               >
                 Forgot Password?
@@ -185,10 +205,10 @@ export const SignInScreen: React.FC = () => {
       {/* Footer */}
       <footer className="pt-6 pb-2 text-center">
         <p className="text-sm text-[#43474c]">
-          Don't have an account?{' '}
+          Don't have an account?{" "}
           <button
             type="button"
-            onClick={() => navigate('signup')}
+            onClick={() => navigate("signup")}
             className="font-heading font-bold text-[#fb7800] hover:underline ml-1"
           >
             Sign Up

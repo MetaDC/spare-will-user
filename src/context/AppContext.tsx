@@ -22,6 +22,7 @@ import {
   firebaseSignInWithGoogle,
   subscribeToAuth,
   subscribeToBusinessSettings,
+  ensureUserProfileInFirestore,
   // subscribeToInventory,
 } from "../services/firebaseService";
 
@@ -53,7 +54,7 @@ interface AppContextType {
     password?: string,
   ) => Promise<boolean> | boolean;
   signOut: () => void;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<UserProfile>, silent?: boolean) => Promise<void> | void;
 
   // Business settings from admin
   businessSettings: BusinessSettings | null;
@@ -77,7 +78,11 @@ interface AppContextType {
   addDraftPart: (
     name: string,
     spec?: string,
-    subcatMeta?: { subcategoryId?: string; categoryId?: string; categoryName?: string },
+    subcatMeta?: {
+      subcategoryId?: string;
+      categoryId?: string;
+      categoryName?: string;
+    },
   ) => void;
   removeDraftPart: (id: string) => void;
   updateDraftPartQuantity: (id: string, quantity: number) => void;
@@ -163,7 +168,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   //   return () => unsub();
   // }, []);
 
-
   // Real-time Firebase Firestore Sync for inquiries
   useEffect(() => {
     const unsub = subscribeToInquiries(
@@ -194,19 +198,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Sync auth state
   useEffect(() => {
-    const unsub = subscribeToAuth((fbUser) => {
+    const unsub = subscribeToAuth(async (fbUser) => {
       if (fbUser) {
-        const profile: UserProfile = {
-          id: fbUser.uid,
-          name:
-            fbUser.displayName ||
-            fbUser.email?.split("@")[0] ||
-            "Valued Customer",
-          email: fbUser.email || "",
-          phone: "",
-          avatar: "",
-        };
-        setCurrentUser(profile);
+        try {
+          const profile = await ensureUserProfileInFirestore(fbUser);
+          setCurrentUser(profile);
+        } catch (e) {
+          console.warn("Could not ensure user in firestore:", e);
+          const fallbackProfile: UserProfile = {
+            id: fbUser.uid,
+            name:
+              fbUser.displayName ||
+              fbUser.email?.split("@")[0] ||
+              "Valued Customer",
+            email: fbUser.email || "",
+            phone: "",
+            avatar: fbUser.photoURL || "",
+          };
+          setCurrentUser(fallbackProfile);
+        }
       }
     });
 
@@ -230,7 +240,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [draftVehicle, setDraftVehicle] = useState<VehicleInfo>({
     make: "",
     model: "",
-    year: new Date().getFullYear(),
     engineTrim: "",
     transmission: "",
     vin: "",
@@ -243,6 +252,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     whatsappAvailable: true,
     email: currentUser?.email || "",
   });
+
+  // Sync draftContact whenever currentUser is loaded or updated
+  useEffect(() => {
+    if (currentUser) {
+      setDraftContact((prev) => ({
+        fullName: prev.fullName || currentUser.name || "",
+        mobileNumber: prev.mobileNumber || currentUser.phone || "",
+        whatsappAvailable: prev.whatsappAvailable ?? true,
+        email: prev.email || currentUser.email || "",
+      }));
+    }
+  }, [currentUser]);
+
   const [draftNotes, setDraftNotes] = useState<string>("");
   const [partSearchQuery, setPartSearchQuery] = useState<string>("");
 
@@ -385,7 +407,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     navigate("signin");
   };
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
+  const updateProfile = async (
+    data: Partial<UserProfile>,
+    silent = false,
+  ) => {
     if (!currentUser) return;
     const updated = { ...currentUser, ...data };
     setCurrentUser(updated);
@@ -394,7 +419,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (e) {
       console.warn("Failed to update profile in Firestore:", e);
     }
-    showToast("Profile updated successfully", "success");
+    if (!silent) {
+      showToast("Profile updated successfully", "success");
+    }
   };
 
   const viewInquiry = (id: string) => {
@@ -408,7 +435,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const addDraftPart = (
     name: string,
     spec: string = "Standard Fitment",
-    subcatMeta?: { subcategoryId?: string; categoryId?: string; categoryName?: string },
+    subcatMeta?: {
+      subcategoryId?: string;
+      categoryId?: string;
+      categoryName?: string;
+    },
   ) => {
     if (!name.trim()) return;
     const existingIndex = draftParts.findIndex(
@@ -476,6 +507,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       return null;
     }
 
+    if (!draftContact.mobileNumber || !draftContact.mobileNumber.trim()) {
+      showToast("Mobile number is required to submit your inquiry", "error");
+      setScreenHistory((prev) => [...prev, "contact-details"]);
+      setCurrentScreen("contact-details");
+      return null;
+    }
+
     // Auto-generate unique Firestore document ID
     const newDocRef = doc(collection(db, "inquiries"));
     const newId = newDocRef.id;
@@ -507,33 +545,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       createdAt: today.toISOString(),
       statusHistory: [
         {
+          createdAt: today.toISOString(),
+          description: "Inquiry submitted by customer",
           status: "New",
-          label: "New",
-          description: "We have received your inquiry.",
-          date: `${formattedDate}, ${today.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-          completed: true,
-          active: true,
-        },
-        {
-          status: "Reviewing",
-          label: "Reviewing",
-          description: "Our team is finding the best parts.",
-          completed: false,
-          active: false,
-        },
-        {
-          status: "Price Sent",
-          label: "Price Sent",
-          description: "Check your messages for details.",
-          completed: false,
-          active: false,
-        },
-        {
-          status: "Customer Contacted",
-          label: "Customer Contacted",
-          description: "Finalizing the request.",
-          completed: false,
-          active: false,
+          createdByName:
+            currentUser?.name || draftContact.fullName || "Customer",
+          createdById: currentUser?.id || "customer",
         },
       ],
     };
@@ -542,11 +559,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       // Sanitize to remove any `undefined` values which crash Firestore
       const sanitizedInquiry = JSON.parse(JSON.stringify(newInquiry));
 
-      // Persist to Firestore first
-      await saveInquiryToFirestore(sanitizedInquiry);
+      // Persist to Firestore first and receive assigned sequential inquireId
+      const { inquireId: generatedInquireId } =
+        await saveInquiryToFirestore(sanitizedInquiry);
 
-      setInquiries((prev) => [newInquiry, ...prev]);
+      const savedInquiry: Inquiry = {
+        ...newInquiry,
+        inquireId: generatedInquireId,
+      };
+
+      setInquiries((prev) => [savedInquiry, ...prev]);
       setActiveInquiryId(newId);
+
+      // Auto-update user document with mobileNumber if missing or changed
+      if (
+        draftContact.mobileNumber &&
+        currentUser.phone !== draftContact.mobileNumber
+      ) {
+        updateProfile({ phone: draftContact.mobileNumber.trim() }, true);
+      }
+
       showToast("Inquiry submitted successfully!", "success");
       return newId;
     } catch (err: any) {

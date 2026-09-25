@@ -2,5 +2,20 @@
   "firestore": {
     "database": "ai-studio-sparewill-897aae60-71c4-41ed-beb5-8e4db40ed4c1",
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "site": "sparewill-user",
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

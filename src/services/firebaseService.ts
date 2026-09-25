@@ -10,6 +10,7 @@ import {
   orderBy,
   where,
   serverTimestamp,
+  runTransaction,
   Unsubscribe,
 } from "firebase/firestore";
 import {
@@ -115,47 +116,126 @@ export function subscribeToInquiries(
 
 /**
  * Save / create an inquiry in Firestore.
- * Auto-generates ID if not provided, saves `createdAt` in serverTimestamp() format,
- * and omits redundant `date` and `serverTime` fields.
+ * Atomically increments `inquiryCount` in `Setting/sets` and generates sequential `inquireId` (SW001, SW002...).
+ * Preserves the original `id` and Firestore document ID without modification.
  */
 export async function saveInquiryToFirestore(
   inquiry: Inquiry,
-): Promise<string> {
+): Promise<{ id: string; inquireId: string }> {
   const docRef = inquiry.id
     ? doc(db, INQUIRIES_COLLECTION, inquiry.id)
     : doc(collection(db, INQUIRIES_COLLECTION));
 
-  // Strip legacy / redundant fields: date and serverTime
-  const { date, serverTime, createdAt, ...dataToSave } = inquiry as any;
+  const settingRef = doc(db, "Setting", "sets");
+  const { date, serverTime, createdAt, InquireID, ...dataToSave } = inquiry as any;
 
-  await setDoc(
-    docRef,
-    {
-      ...dataToSave,
-      id: docRef.id,
-      createdAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  let assignedInquireId = inquiry.inquireId || inquiry.InquireID;
 
-  return docRef.id;
+  if (!assignedInquireId) {
+    try {
+      assignedInquireId = await runTransaction(db, async (transaction) => {
+        const settingSnap = await transaction.get(settingRef);
+        let count = 0;
+        if (settingSnap.exists()) {
+          const settingData = settingSnap.data();
+          count =
+            typeof settingData.inquiryCount === "number"
+              ? settingData.inquiryCount
+              : 0;
+        }
+        const nextCount = count + 1;
+        const generatedInquireId = `SW${String(nextCount).padStart(3, "0")}`;
+
+        // Atomically update inquiryCount in Setting/sets
+        transaction.set(
+          settingRef,
+          {
+            inquiryCount: nextCount,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+
+        // Save inquiry with newly generated inquireId (only save inquireId)
+        transaction.set(
+          docRef,
+          {
+            ...dataToSave,
+            id: docRef.id,
+            inquireId: generatedInquireId,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+
+        return generatedInquireId;
+      });
+    } catch (e) {
+      console.warn(
+        "Transaction failed, saving with fallback sequential ID:",
+        e,
+      );
+      const fallbackId = `SW${Math.floor(100 + Math.random() * 900)}`;
+      await setDoc(
+        docRef,
+        {
+          ...dataToSave,
+          id: docRef.id,
+          inquireId: fallbackId,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      assignedInquireId = fallbackId;
+    }
+  } else {
+    // If inquireId already exists, keep only inquireId
+    await setDoc(
+      docRef,
+      {
+        ...dataToSave,
+        id: docRef.id,
+        inquireId: assignedInquireId,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  return { id: docRef.id, inquireId: assignedInquireId || docRef.id };
 }
 
 /**
- * Save user profile to Firestore
+ * Save user profile to Firestore with serverTimestamp
  */
 export async function saveUserProfileToFirestore(
   user: UserProfile,
 ): Promise<void> {
   const docRef = doc(db, USERS_COLLECTION, user.id);
-  await setDoc(
-    docRef,
-    {
-      ...user,
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true },
-  );
+  const snap = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    await setDoc(
+      docRef,
+      {
+        ...user,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } else {
+    const existingData = snap.data();
+    await setDoc(
+      docRef,
+      {
+        ...user,
+        createdAt: existingData?.createdAt || serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
 }
 
 /**
@@ -168,7 +248,7 @@ export async function getUserProfileFromFirestore(
     const docRef = doc(db, USERS_COLLECTION, userId);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
-      return snap.data() as UserProfile;
+      return { id: snap.id, ...snap.data() } as UserProfile;
     }
   } catch (e) {
     console.warn("Failed to get user profile from Firestore:", e);
@@ -177,7 +257,9 @@ export async function getUserProfileFromFirestore(
 }
 
 /**
- * Firebase Auth Helpers
+ * Firebase Auth Helpers:
+ * When user logs in, check if auth id has same document in user collection.
+ * If not, create it with createdAt and updatedAt as serverTimestamp.
  */
 export async function firebaseSignIn(
   email: string,
@@ -185,17 +267,37 @@ export async function firebaseSignIn(
 ): Promise<UserProfile> {
   const cred = await signInWithEmailAndPassword(auth, email, password);
   const fbUser = cred.user;
-  const existing = await getUserProfileFromFirestore(fbUser.uid);
-  if (existing) return existing;
 
+  // Check if document exists in 'users' collection with doc ID = fbUser.uid
+  const userDocRef = doc(db, USERS_COLLECTION, fbUser.uid);
+  const snap = await getDoc(userDocRef);
+
+  if (snap.exists()) {
+    const existing = { id: snap.id, ...snap.data() } as UserProfile;
+    // Update updatedAt timestamp on login
+    await setDoc(userDocRef, { updatedAt: serverTimestamp() }, { merge: true });
+    return existing;
+  }
+
+  // Document does not exist in 'users' collection -> create it on login!
   const profile: UserProfile = {
     id: fbUser.uid,
     name: fbUser.displayName || email.split("@")[0] || "Valued Customer",
     email: fbUser.email || email,
     phone: "",
-    avatar: "",
+    avatar: fbUser.photoURL || "",
   };
-  await saveUserProfileToFirestore(profile);
+
+  await setDoc(
+    userDocRef,
+    {
+      ...profile,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
   return profile;
 }
 
@@ -211,6 +313,7 @@ export async function firebaseSignUp(
     await fbUpdateProfile(fbUser, { displayName: name });
   }
 
+  const userDocRef = doc(db, USERS_COLLECTION, fbUser.uid);
   const profile: UserProfile = {
     id: fbUser.uid,
     name: name || "Customer",
@@ -219,7 +322,16 @@ export async function firebaseSignUp(
     avatar: "",
   };
 
-  await saveUserProfileToFirestore(profile);
+  await setDoc(
+    userDocRef,
+    {
+      ...profile,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
   return profile;
 }
 
@@ -231,9 +343,18 @@ export async function firebaseSignInWithGoogle(): Promise<UserProfile> {
   const provider = new GoogleAuthProvider();
   const cred = await signInWithPopup(auth, provider);
   const fbUser = cred.user;
-  const existing = await getUserProfileFromFirestore(fbUser.uid);
-  if (existing) return existing;
 
+  // Check if document exists in 'users' collection with doc ID = fbUser.uid
+  const userDocRef = doc(db, USERS_COLLECTION, fbUser.uid);
+  const snap = await getDoc(userDocRef);
+
+  if (snap.exists()) {
+    const existing = { id: snap.id, ...snap.data() } as UserProfile;
+    await setDoc(userDocRef, { updatedAt: serverTimestamp() }, { merge: true });
+    return existing;
+  }
+
+  // Document does not exist in 'users' collection -> create it on login!
   const profile: UserProfile = {
     id: fbUser.uid,
     name: fbUser.displayName || "Google User",
@@ -241,7 +362,52 @@ export async function firebaseSignInWithGoogle(): Promise<UserProfile> {
     phone: "",
     avatar: fbUser.photoURL || "",
   };
-  await saveUserProfileToFirestore(profile);
+
+  await setDoc(
+    userDocRef,
+    {
+      ...profile,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return profile;
+}
+
+export async function ensureUserProfileInFirestore(
+  fbUser: FirebaseUser,
+): Promise<UserProfile> {
+  const userDocRef = doc(db, USERS_COLLECTION, fbUser.uid);
+  const snap = await getDoc(userDocRef);
+
+  if (snap.exists()) {
+    const existing = { id: snap.id, ...snap.data() } as UserProfile;
+    await setDoc(userDocRef, { updatedAt: serverTimestamp() }, { merge: true });
+    return existing;
+  }
+
+  // Document does not exist in 'users' collection -> create it on login!
+  const profile: UserProfile = {
+    id: fbUser.uid,
+    name:
+      fbUser.displayName || fbUser.email?.split("@")[0] || "Valued Customer",
+    email: fbUser.email || "",
+    phone: "",
+    avatar: fbUser.photoURL || "",
+  };
+
+  await setDoc(
+    userDocRef,
+    {
+      ...profile,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
   return profile;
 }
 
@@ -252,18 +418,35 @@ export function subscribeToAuth(
 }
 
 /**
- * Subscribe to business settings (settings/business) — written by the admin panel.
+ * Subscribe to business settings (Setting/sets) — written by the admin panel.
  */
 export function subscribeToBusinessSettings(
   onData: (settings: BusinessSettings) => void,
   onError?: (err: Error) => void,
 ): Unsubscribe {
-  const docRef = doc(db, "settings", "business");
+  const docRef = doc(db, "Setting", "sets");
   return onSnapshot(
     docRef,
     (snap) => {
       if (snap.exists()) {
-        onData(snap.data() as BusinessSettings);
+        const d = snap.data();
+        onData({
+          businessName: d.businessName || "Spare Will",
+          businessEmail: d.businessEmail || "",
+          callingNumber: d.businessCallingNumber || d.callingNumber || "",
+          whatsappNumber: d.whatsappNumber || "",
+          defaultGreeting: d.defaultGreetingMsg || d.defaultGreeting || "",
+        });
+      } else {
+        // Fallback to legacy document if Setting/sets is not yet initialized
+        const legacyRef = doc(db, "settings", "business");
+        getDoc(legacyRef)
+          .then((s) => {
+            if (s.exists()) {
+              onData(s.data() as BusinessSettings);
+            }
+          })
+          .catch((e) => console.warn("Fallback settings error:", e));
       }
     },
     (err) => {

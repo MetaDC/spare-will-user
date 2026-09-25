@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { LOGO_URL } from '../data/mockData';
-import { Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
 
 export const SignUpScreen: React.FC = () => {
-  const { signUp, navigate, showToast } = useApp();
+  const { signUp, navigate, goBack, showToast } = useApp();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,9 +35,16 @@ export const SignUpScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7fafc] px-4 py-6 max-w-sm mx-auto w-full justify-between">
-      {/* Header */}
+      {/* Header with Back Button and Logo */}
       <header className="flex flex-col items-center pt-2 pb-4">
-        <div className="w-full flex justify-start mb-4 -ml-2">
+        <div className="w-full flex items-center justify-between mb-4 -ml-2">
+          <button
+            onClick={goBack}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#181c1e] hover:bg-[#ebeef0] active:scale-95 transition-all cursor-pointer relative z-10"
+            aria-label="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <button
             onClick={() => navigate('home')}
             className="focus:outline-none group cursor-pointer"
@@ -47,10 +54,11 @@ export const SignUpScreen: React.FC = () => {
               <img
                 src={LOGO_URL}
                 alt="Spare Will"
-                className="w-[160px] h-auto object-contain transition-transform group-active:scale-95"
+                className="w-[140px] sm:w-[160px] h-auto object-contain transition-transform group-active:scale-95"
               />
             </div>
           </button>
+          <div className="w-10" />
         </div>
 
         <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#181c1e] text-center w-full">

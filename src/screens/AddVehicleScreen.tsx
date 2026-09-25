@@ -110,8 +110,8 @@ export const AddVehicleScreen: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   // ─── Debounced queries ───────────────────────────────────────────────────
-  const debouncedBrandQuery = useDebounce(brandQuery, 350);
-  const debouncedModelQuery = useDebounce(modelQuery, 350);
+  const debouncedBrandQuery = useDebounce(brandQuery, 600);
+  const debouncedModelQuery = useDebounce(modelQuery, 600);
 
   // ── Fetch brand suggestions ───────────────────────────────────────────────
   useEffect(() => {
@@ -265,10 +265,6 @@ export const AddVehicleScreen: React.FC = () => {
 
   const handleVariantSelect = (variant: VehicleVariant) => {
     setSelectedVariant((prev) => (prev?.id === variant.id ? null : variant));
-    // Pre-fill year from variant's yearFrom
-    if (!year) {
-      setYear(String(variant.yearFrom));
-    }
   };
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -322,9 +318,7 @@ export const AddVehicleScreen: React.FC = () => {
       engine: selectedVariant?.engine || customEngine || undefined,
       engineCode: selectedVariant?.engineCode || undefined,
       transmission,
-      year: year
-        ? parseInt(year) || new Date().getFullYear()
-        : new Date().getFullYear(),
+      year: year && parseInt(year) ? parseInt(year) : undefined,
       engineTrim: engineTrim || "Standard",
       vin: undefined,
       image: undefined,
@@ -436,15 +430,15 @@ export const AddVehicleScreen: React.FC = () => {
               type="number"
               min="1900"
               max={currentYear + 2}
-              placeholder={`e.g. ${currentYear - 3}`}
+              placeholder="Enter year"
               value={year}
               onChange={(e) => setYear(e.target.value)}
               className="w-full h-12 px-4 bg-white border border-[#c3c7cd] rounded-xl text-sm text-[#181c1e] placeholder:text-[#73777d] focus:border-[#fb7800] focus:ring-2 focus:ring-[#fb7800]/20 outline-none shadow-2xs transition-all"
             />
-            {selectedVariant && (
+            {selectedVariant && selectedVariant.yearFrom && (
               <p className="text-[10px] text-[#73777d] mt-1.5">
-                Pre-filled from variant ({selectedVariant.yearFrom}–
-                {selectedVariant.yearTo}). Change if needed.
+                Variant model years: {selectedVariant.yearFrom}–
+                {selectedVariant.yearTo}
               </p>
             )}
           </div>

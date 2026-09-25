@@ -10,10 +10,8 @@ export type InquiryStatus =
   | "New"
   | "Reviewing"
   | "Price Sent"
-  | "Customer Contacted"
   | "Completed"
-  | "Cancelled"
-  | "Closed";
+  | "Cancelled";
 
 export type PartAvailability =
   | "Available"
@@ -49,6 +47,8 @@ export interface InquiryPartItem {
 
   // ── Admin Primary Quotation Fields ──
   availability?: PartAvailability; // 'Available' | 'Not Available' | 'Alternative Available'
+  partTypes?: string[]; // Multiple selected part types (e.g. ['Aftermarket', 'OEM'])
+  partTypePrices?: Record<string, number>; // Map of { [partType]: price }
   brandId?: string; // Selected PartBrand.id
   brandName?: string; // Selected PartBrand.name (e.g. "Bosch")
   partNumber?: string; // OEM / Aftermarket part number
@@ -85,7 +85,7 @@ export interface InquiryVehicleInfo {
   transmission?: TransmissionType | string;
 
   // Manufacturing year & identification
-  year: number; // e.g. 2021
+  year?: number; // e.g. 2021
   vin?: string; // Optional Chassis/VIN
   image?: string; // Optional vehicle image
 
@@ -101,16 +101,17 @@ export interface ContactInfo {
 }
 
 export interface StatusHistoryItem {
-  status: InquiryStatus;
-  label: string;
+  createdAt: any;
   description: string;
-  date?: string;
-  completed: boolean;
-  active: boolean;
+  status: InquiryStatus;
+  createdByName: string;
+  createdById: string;
 }
 
 export interface Inquiry {
   id: string;
+  inquireId?: string;
+  InquireID?: string;
   userId?: string;
   status: InquiryStatus;
   vehicle: InquiryVehicleInfo;

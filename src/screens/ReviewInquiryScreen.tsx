@@ -23,7 +23,7 @@ export const ReviewInquiryScreen: React.FC = () => {
     const id = await submitInquiry();
     setIsSubmitting(false);
     if (id) {
-      navigate('inquiry-sent');
+      navigate('inquiry-sent', { inquiryId: id });
     }
   };
 
@@ -202,20 +202,23 @@ export const ReviewInquiryScreen: React.FC = () => {
           </section>
         </div>
 
-        {/* Disclaimer & Send Action */}
-        <div className="mt-6 space-y-3">
-          <p className="text-[10px] sm:text-[11px] text-[#73777d] text-center leading-relaxed px-2">
-            By submitting this inquiry, you agree to our terms of service and privacy policy. We will get back to you with a quote shortly.
-          </p>
+        {/* Disclaimer */}
+        <p className="text-[10px] sm:text-[11px] text-[#73777d] text-center leading-relaxed px-2 mt-4 mb-2">
+          By submitting this inquiry, you agree to our terms of service and privacy policy. We will get back to you with a quote shortly.
+        </p>
 
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full h-12 bg-[#fb7800] hover:bg-[#e06c00] text-white font-heading font-bold text-sm sm:text-base rounded-xl shadow-[0_4px_16px_rgba(251,120,0,0.3)] flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-75"
-          >
-            <Send className="w-4 h-4 fill-current" />
-            {isSubmitting ? 'Sending Inquiry...' : 'SEND INQUIRY'}
-          </button>
+        {/* Sticky Bottom Send Inquiry Button */}
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 bg-[#f7fafc]/95 backdrop-blur-md border-t border-[#e0e3e5] pb-safe">
+          <div className="max-w-md mx-auto px-4 py-3 sm:py-3.5">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full h-12 bg-[#fb7800] hover:bg-[#e06c00] text-white font-heading font-bold text-sm sm:text-base rounded-xl shadow-[0_4px_16px_rgba(251,120,0,0.3)] flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-75"
+            >
+              <Send className="w-4 h-4 fill-current" />
+              {isSubmitting ? 'Sending Inquiry...' : 'SEND INQUIRY'}
+            </button>
+          </div>
         </div>
       </main>
 

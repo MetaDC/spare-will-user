@@ -1,47 +1,107 @@
-import React, { useState } from 'react';
-import { Header } from '../components/Header';
-import { useApp } from '../context/AppContext';
-import { ArrowRight, Mail, MessageSquare, Phone, User } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Header } from "../components/Header";
+import { useApp } from "../context/AppContext";
+import { ArrowRight, Mail, MessageSquare, Phone, User } from "lucide-react";
 
 export const ContactDetailsScreen: React.FC = () => {
-  const { draftContact, updateDraftContact, navigate, showToast } = useApp();
+  const {
+    draftContact,
+    updateDraftContact,
+    currentUser,
+    updateProfile,
+    navigate,
+    showToast,
+  } = useApp();
 
-  const [fullName, setFullName] = useState(draftContact.fullName || '');
-  const [mobileNumber, setMobileNumber] = useState(draftContact.mobileNumber || '');
-  const [whatsappAvailable, setWhatsappAvailable] = useState(draftContact.whatsappAvailable ?? true);
-  const [email, setEmail] = useState(draftContact.email || '');
+  const [fullName, setFullName] = useState(
+    draftContact.fullName || currentUser?.name || "",
+  );
+  const [mobileNumber, setMobileNumber] = useState(
+    draftContact.mobileNumber || currentUser?.phone || "",
+  );
+  const [whatsappAvailable] = useState(true);
+  const [email, setEmail] = useState(
+    draftContact.email || currentUser?.email || "",
+  );
   const [errors, setErrors] = useState<{ name?: string; mobile?: string }>({});
+
+  // Auto-take phone, name, email from currentUser if fields are empty
+  useEffect(() => {
+    if (currentUser) {
+      if (!mobileNumber && currentUser.phone) {
+        setMobileNumber(currentUser.phone);
+      }
+      if (!fullName && currentUser.name) {
+        setFullName(currentUser.name);
+      }
+      if (!email && currentUser.email) {
+        setEmail(currentUser.email);
+      }
+    }
+  }, [currentUser]);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { name?: string; mobile?: string } = {};
 
     if (!fullName.trim()) {
-      newErrors.name = 'Full name is required';
+      newErrors.name = "Full name is required";
     }
+    const cleanDigits = mobileNumber.replace(/\D/g, "");
     if (!mobileNumber.trim()) {
-      newErrors.mobile = 'Mobile number is required';
+      newErrors.mobile = "Mobile number is required";
+    } else if (cleanDigits.length < 10) {
+      newErrors.mobile = "Please enter a valid 10-digit mobile number";
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      showToast('Please fill in the required contact fields', 'error');
+      showToast(
+        newErrors.mobile || "Please fill in the required contact fields",
+        "error",
+      );
       return;
     }
 
+    const trimmedMobile = mobileNumber.trim();
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim();
+
     updateDraftContact({
-      fullName: fullName.trim(),
-      mobileNumber: mobileNumber.trim(),
-      whatsappAvailable,
-      email: email.trim()
+      fullName: trimmedName,
+      mobileNumber: trimmedMobile,
+      whatsappAvailable: true,
+      email: trimmedEmail,
     });
 
-    navigate('review-inquiry');
+    // If user document is missing phone number or changed, update it in user collection
+    if (currentUser) {
+      const updates: { phone?: string; name?: string; email?: string } = {};
+      if (trimmedMobile && currentUser.phone !== trimmedMobile) {
+        updates.phone = trimmedMobile;
+      }
+      if (
+        trimmedName &&
+        (!currentUser.name ||
+          currentUser.name === "Customer" ||
+          currentUser.name === "Valued Customer")
+      ) {
+        updates.name = trimmedName;
+      }
+      if (trimmedEmail && !currentUser.email) {
+        updates.email = trimmedEmail;
+      }
+      if (Object.keys(updates).length > 0) {
+        updateProfile(updates, true);
+      }
+    }
+
+    navigate("review-inquiry");
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7fafc] pb-32">
-      <Header showBack onBack={() => navigate('add-parts')} />
+      <Header showBack onBack={() => navigate("add-parts")} />
 
       <main className="flex-1 px-4 pt-4 max-w-md mx-auto w-full flex flex-col">
         {/* Progress Indicator (Step 4 of 5, segmented bars matching reference) */}
@@ -66,7 +126,8 @@ export const ContactDetailsScreen: React.FC = () => {
             How can we contact you?
           </h1>
           <p className="text-xs sm:text-sm text-[#43474c]">
-            Please provide your details so our team can reach out with quote & delivery options.
+            Please provide your details so our team can reach out with quote &
+            delivery options.
           </p>
         </div>
 
@@ -75,54 +136,61 @@ export const ContactDetailsScreen: React.FC = () => {
           {/* Full Name */}
           <div>
             <label className="block text-[11px] sm:text-xs font-bold text-[#181c1e] uppercase tracking-wider mb-1.5">
-              Full Name
+              Full Name <span className="text-[#ba1a1a]">*</span>
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-[#73777d] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={fullName}
-                onChange={e => {
+                onChange={(e) => {
                   setFullName(e.target.value);
-                  if (errors.name) setErrors(prev => ({ ...prev, name: undefined }));
+                  if (errors.name)
+                    setErrors((prev) => ({ ...prev, name: undefined }));
                 }}
                 placeholder="Enter your full name"
                 className={`w-full h-12 pl-10 pr-4 bg-white border rounded-xl text-xs sm:text-sm text-[#181c1e] placeholder:text-[#73777d] outline-none shadow-2xs transition-all ${
                   errors.name
-                    ? 'border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]'
-                    : 'border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]'
+                    ? "border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]"
+                    : "border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]"
                 }`}
               />
             </div>
-            {errors.name && <p className="text-xs text-[#ba1a1a] mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-xs text-[#ba1a1a] mt-1">{errors.name}</p>
+            )}
           </div>
 
           {/* Mobile Number */}
           <div>
             <label className="block text-[11px] sm:text-xs font-bold text-[#181c1e] uppercase tracking-wider mb-1.5">
-              Mobile Number
+              Mobile Number <span className="text-[#ba1a1a]">*</span>
             </label>
             <div className="relative">
               <Phone className="w-4 h-4 text-[#73777d] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="tel"
                 value={mobileNumber}
-                onChange={e => {
+                onChange={(e) => {
                   setMobileNumber(e.target.value);
-                  if (errors.mobile) setErrors(prev => ({ ...prev, mobile: undefined }));
+                  if (errors.mobile)
+                    setErrors((prev) => ({ ...prev, mobile: undefined }));
                 }}
                 placeholder="+91 99999 00000"
                 className={`w-full h-12 pl-10 pr-4 bg-white border rounded-xl text-xs sm:text-sm text-[#181c1e] placeholder:text-[#73777d] outline-none shadow-2xs transition-all ${
                   errors.mobile
-                    ? 'border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]'
-                    : 'border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]'
+                    ? "border-[#ba1a1a] focus:ring-1 focus:ring-[#ba1a1a]"
+                    : "border-[#c3c7cd] focus:border-[#fb7800] focus:ring-1 focus:ring-[#fb7800]"
                 }`}
               />
             </div>
-            {errors.mobile && <p className="text-xs text-[#ba1a1a] mt-1">{errors.mobile}</p>}
+            {errors.mobile && (
+              <p className="text-xs text-[#ba1a1a] mt-1">{errors.mobile}</p>
+            )}
           </div>
 
-          {/* WhatsApp Toggle Card */}
+          {/* WhatsApp Toggle Card (commented out - defaults to true) */}
+          {/*
           <div className="bg-[#f1f4f6] border border-[#e0e3e5] rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#009844]/15 flex items-center justify-center text-[#009844] shrink-0">
@@ -142,12 +210,13 @@ export const ContactDetailsScreen: React.FC = () => {
               <input
                 type="checkbox"
                 checked={whatsappAvailable}
-                onChange={e => setWhatsappAvailable(e.target.checked)}
+                onChange={() => {}}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-[#c3c7cd] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fb7800]" />
             </label>
           </div>
+          */}
 
           {/* Email Address */}
           <div>
@@ -159,7 +228,7 @@ export const ContactDetailsScreen: React.FC = () => {
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="user@example.com"
                 className="w-full h-12 pl-10 pr-4 bg-white border border-[#c3c7cd] rounded-xl text-xs sm:text-sm text-[#181c1e] placeholder:text-[#73777d] focus:border-[#fb7800] outline-none shadow-2xs"
               />

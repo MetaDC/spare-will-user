@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Header } from '../components/Header';
-import { PartRow } from '../components/PartRow';
-import { useApp } from '../context/AppContext';
-import { ArrowRight, Plus, Search, Package, Loader2, Layers } from 'lucide-react';
-import { searchPartsAndCategories, PartSearchResult } from '../services/partCatalogService';
-import { PartSubcategory } from '../models/part';
+import React, { useState, useEffect, useRef } from "react";
+import { Header } from "../components/Header";
+import { PartRow } from "../components/PartRow";
+import { useApp } from "../context/AppContext";
+import {
+  ArrowRight,
+  Plus,
+  Search,
+  Package,
+  Loader2,
+  Layers,
+} from "lucide-react";
+import {
+  searchPartsAndCategories,
+  PartSearchResult,
+} from "../services/partCatalogService";
+import { PartSubcategory } from "../models/part";
 
 export const AddSparePartsScreen: React.FC = () => {
   const {
@@ -18,7 +28,7 @@ export const AddSparePartsScreen: React.FC = () => {
     showToast,
   } = useApp();
 
-  const [inputVal, setInputVal] = useState(partSearchQuery || '');
+  const [inputVal, setInputVal] = useState(partSearchQuery || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<PartSearchResult>({
@@ -47,11 +57,11 @@ export const AddSparePartsScreen: React.FC = () => {
         const res = await searchPartsAndCategories(trimmed, 12);
         setSearchResult(res);
       } catch (e) {
-        console.warn('Part search failed:', e);
+        console.warn("Part search failed:", e);
       } finally {
         setIsLoading(false);
       }
-    }, 250);
+    }, 600);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -63,43 +73,47 @@ export const AddSparePartsScreen: React.FC = () => {
   const handleAddFromInput = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputVal.trim()) return;
-    addDraftPart(inputVal.trim(), 'Custom Specification');
-    setInputVal('');
-    setPartSearchQuery('');
+    addDraftPart(inputVal.trim(), "Custom Specification");
+    setInputVal("");
+    setPartSearchQuery("");
     setShowSuggestions(false);
   };
 
   const handleSelectSubcategory = (subcat: PartSubcategory) => {
-    const spec = subcat.categoryName ? `${subcat.categoryName}` : 'Standard Fitment';
+    const spec = subcat.categoryName
+      ? `${subcat.categoryName}`
+      : "Standard Fitment";
     addDraftPart(subcat.name, spec, {
       subcategoryId: subcat.id,
       categoryId: subcat.categoryId,
       categoryName: subcat.categoryName,
     });
-    setInputVal('');
-    setPartSearchQuery('');
+    setInputVal("");
+    setPartSearchQuery("");
     setShowSuggestions(false);
   };
 
   const handleNext = () => {
     if (draftParts.length === 0) {
-      showToast('Please add at least one spare part to continue', 'error');
+      showToast("Please add at least one spare part to continue", "error");
       return;
     }
-    navigate('contact-details');
+    navigate("contact-details");
   };
 
   const hasSuggestions = searchResult.subcategories.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7fafc] pb-32">
-      <Header showBack onBack={() => navigate('add-vehicle')} />
+      <Header showBack onBack={() => navigate("add-vehicle")} />
 
       <main className="flex-1 px-4 pt-4 max-w-md mx-auto w-full flex flex-col">
         {/* Progress Bar (Step 2 of 5) */}
         <div className="mb-4">
           <div className="flex justify-between items-center text-xs font-semibold mb-1.5">
-            <span className="text-[#43474c] uppercase tracking-wider">Step 2 of 5</span>
+            <span className="text-[#43474c] uppercase tracking-wider">
+              Step 2 of 5
+            </span>
             <span className="text-[#fb7800] font-bold">40% Complete</span>
           </div>
           <div className="w-full h-1.5 bg-[#e0e3e5] rounded-full overflow-hidden">
@@ -113,7 +127,8 @@ export const AddSparePartsScreen: React.FC = () => {
             What parts do you need?
           </h1>
           <p className="text-xs text-[#73777d]">
-            Search by part or category (e.g. Brake Pad, Air Conditioner) to add items.
+            Search by part or category (e.g. Brake Pad, Air Conditioner) to add
+            items.
           </p>
         </div>
 
@@ -125,7 +140,7 @@ export const AddSparePartsScreen: React.FC = () => {
               <input
                 type="text"
                 value={inputVal}
-                onChange={e => {
+                onChange={(e) => {
                   setInputVal(e.target.value);
                   setShowSuggestions(true);
                 }}
@@ -159,7 +174,12 @@ export const AddSparePartsScreen: React.FC = () => {
                 <div className="bg-[#fff7f0] border-b border-[#ffe8d6] px-3 py-2 flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5 text-[#fb7800] shrink-0" />
                   <p className="text-[11px] font-semibold text-[#8a3c00] truncate">
-                    Category: <span className="font-bold">{searchResult.matchedCategories.map(c => c.name).join(', ')}</span>
+                    Category:{" "}
+                    <span className="font-bold">
+                      {searchResult.matchedCategories
+                        .map((c) => c.name)
+                        .join(", ")}
+                    </span>
                   </p>
                 </div>
               )}
@@ -168,9 +188,11 @@ export const AddSparePartsScreen: React.FC = () => {
               {hasSuggestions ? (
                 <>
                   <p className="text-[10px] font-semibold text-[#73777d] uppercase tracking-wider px-3 pt-2.5 pb-1">
-                    {searchResult.matchedCategories.length > 0 ? 'Parts in this Category' : 'Catalog Parts'}
+                    {searchResult.matchedCategories.length > 0
+                      ? "Parts in this Category"
+                      : "Catalog Parts"}
                   </p>
-                  {searchResult.subcategories.map(subcat => (
+                  {searchResult.subcategories.map((subcat) => (
                     <button
                       key={subcat.id}
                       type="button"
@@ -181,7 +203,9 @@ export const AddSparePartsScreen: React.FC = () => {
                         <Package className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-[#181c1e] truncate">{subcat.name}</p>
+                        <p className="text-xs font-semibold text-[#181c1e] truncate">
+                          {subcat.name}
+                        </p>
                         {subcat.categoryName && (
                           <p className="text-[10px] text-[#73777d] truncate">
                             {subcat.categoryName}
@@ -196,9 +220,12 @@ export const AddSparePartsScreen: React.FC = () => {
                 </>
               ) : !isLoading ? (
                 <div className="p-3 text-center">
-                  <p className="text-xs font-semibold text-[#181c1e]">No catalog parts found</p>
+                  <p className="text-xs font-semibold text-[#181c1e]">
+                    No catalog parts found
+                  </p>
                   <p className="text-[11px] text-[#73777d] mt-0.5">
-                    Click <strong>Add</strong> or press Enter to add &ldquo;{inputVal.trim()}&rdquo; as a custom request.
+                    Click <strong>Add</strong> or press Enter to add &ldquo;
+                    {inputVal.trim()}&rdquo; as a custom request.
                   </p>
                 </div>
               ) : null}
@@ -221,7 +248,7 @@ export const AddSparePartsScreen: React.FC = () => {
         {/* Compact Parts List */}
         <div className="space-y-3 flex-1">
           {draftParts.length > 0 ? (
-            draftParts.map(part => (
+            draftParts.map((part) => (
               <PartRow
                 key={part.id}
                 part={part}
@@ -234,9 +261,12 @@ export const AddSparePartsScreen: React.FC = () => {
               <div className="w-12 h-12 rounded-full bg-[#f1f4f6] flex items-center justify-center text-[#73777d] mb-2">
                 <Search className="w-5 h-5" />
               </div>
-              <p className="font-heading font-bold text-sm text-[#181c1e]">No parts added yet</p>
+              <p className="font-heading font-bold text-sm text-[#181c1e]">
+                No parts added yet
+              </p>
               <p className="text-xs text-[#73777d] max-w-[220px] mt-1">
-                Search from our catalog or type any part name to start your inquiry.
+                Search from our catalog or type any part name to start your
+                inquiry.
               </p>
             </div>
           )}
@@ -250,8 +280,8 @@ export const AddSparePartsScreen: React.FC = () => {
               disabled={draftParts.length === 0}
               className={`w-full h-12 rounded-xl font-heading font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer ${
                 draftParts.length > 0
-                  ? 'bg-[#fb7800] hover:bg-[#e06c00] text-white shadow-[0_4px_16px_rgba(251,120,0,0.3)]'
-                  : 'bg-[#c3c7cd] text-white/80 cursor-not-allowed'
+                  ? "bg-[#fb7800] hover:bg-[#e06c00] text-white shadow-[0_4px_16px_rgba(251,120,0,0.3)]"
+                  : "bg-[#c3c7cd] text-white/80 cursor-not-allowed"
               }`}
             >
               <span>Next</span>

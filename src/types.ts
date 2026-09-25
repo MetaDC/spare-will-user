@@ -14,7 +14,7 @@ export type Screen =
   | 'forgot-password' 
   | 'edit-profile';
 
-export type InquiryStatus = 'New' | 'Reviewing' | 'Price Sent' | 'Customer Contacted' | 'Completed' | 'Cancelled';
+export type InquiryStatus = 'New' | 'Reviewing' | 'Price Sent' | 'Completed' | 'Cancelled';
 
 export type PartAvailability =
   | 'Available'
@@ -33,6 +33,8 @@ export interface InquiryPartBrandOption {
   note?: string;
 }
 
+export type PartType = 'Aftermarket' | 'Genuine' | 'New' | 'OEM';
+
 export interface PartItem {
   // Customer request fields
   id: string;
@@ -47,6 +49,8 @@ export interface PartItem {
 
   // Admin quotation fields
   availability?: PartAvailability;
+  partTypes?: string[];
+  partTypePrices?: Record<string, number>;
   brandId?: string;
   brandName?: string;
   partNumber?: string;
@@ -72,7 +76,7 @@ export interface VehicleInfo {
   engine?: string;
   engineCode?: string;
   transmission: string;
-  year: number;
+  year?: number;
   engineTrim: string;
   vin?: string;
   image?: string;
@@ -86,16 +90,17 @@ export interface ContactInfo {
 }
 
 export interface StatusHistoryItem {
-  status: InquiryStatus;
-  label: string;
+  createdAt: any;
   description: string;
-  date?: string;
-  completed: boolean;
-  active: boolean;
+  status: InquiryStatus;
+  createdByName: string;
+  createdById: string;
 }
 
 export interface Inquiry {
   id: string;
+  inquireId?: string;
+  InquireID?: string;
   userId?: string;
   status: InquiryStatus;
   vehicle: VehicleInfo;
@@ -112,6 +117,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   avatar: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface ServiceItem {
@@ -130,6 +137,7 @@ export interface BusinessSettings {
   callingNumber: string;
   whatsappNumber: string;
   defaultGreeting: string;
+  inquiryCount?: number;
 }
 
 export interface SparePart {
